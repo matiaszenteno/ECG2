@@ -273,7 +273,7 @@ class Display():
         self.panel.pack(side='top', fill='x')
 
         self.membersLabel = Label(self.initWindow,
-                          text = 'Integrantes: Claudia Fuentealba. Paola Núñez. Claudia Quilodrán. Ángela Valdés.',
+                          text = '*Integrantes: Claudia Fuentealba. Paola Núñez. Claudia Quilodrán. Ángela Valdés.',
                           font='Helveltica 12 bold')
         self.membersLabel.pack(pady=(30,20))
 

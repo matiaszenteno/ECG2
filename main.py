@@ -261,10 +261,13 @@ class Display():
 
         self.initWindow = Toplevel(self.root)
         self.initWindow.title('Proyecto Gestión Energética 2')
-        self.initWindow.geometry("1062x730")
+        self.initWindow.geometry("900x750")
 
         #Creates a Tkinter-compatible photo image, which can be used everywhere Tkinter expects an image object.
-        img = ImageTk.PhotoImage(Image.open(path))
+        base_img = Image.open(path)
+        base_img = base_img.resize((900, 600), Image.ANTIALIAS)
+        img = ImageTk.PhotoImage(base_img)
+        
 
         self.panel = Label(self.initWindow, image = img)
         self.panel.pack(side='top', fill='x')
@@ -272,7 +275,7 @@ class Display():
         self.membersLabel = Label(self.initWindow,
                           text = 'Integrantes: Claudia Fuentealba. Paola Núñez. Claudia Quilodrán. Ángela Valdés.',
                           font='Helveltica 12 bold')
-        self.membersLabel.pack(pady=(15,10))
+        self.membersLabel.pack(pady=(30,20))
 
         self.initProgramButton = Button(self.initWindow,
                           text = 'Iniciar programa',

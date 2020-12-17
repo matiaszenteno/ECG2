@@ -1,3 +1,4 @@
+import numpy as np
 from tkinter import Tk, Button, Label, Toplevel, Frame, Entry, StringVar, ttk
 from PIL import ImageTk, Image
 
@@ -58,6 +59,7 @@ def set_entries(frame, width, *fields_list):
                 elif field[1] == 1:
                     lab = Label(side_row, width=width[1], text=field[0]+": ", anchor='w')
                     entry_var = StringVar()
+
                     ent = Entry(side_row, textvariable=entry_var)
                     ent.configure(state='readonly')
 
@@ -120,7 +122,7 @@ class FirstFrame(ttk.Frame):
 
         lab = Label(side_row, width=25, text='Detalles del Material'+": ", anchor='w')
         ent = ttk.Combobox(side_row, state="readonly")
-        ent["values"] = ['Poliestireno Extruido', 'Poliestireno Expandido', 'Lana de Vidrio', 'Lana de Roca', 'Poliuretano', 'Paneles Sandwich', 'Corcho', 'Celulosa']
+        ent["values"] = ['Poliestireno Extruido', 'Poliestireno Expandido', 'Poliuretano', 'Corcho', 'Lana de Roca', 'Lino', 'Lana de Vidrio', 'Celulosa', 'Lana de Oveja']
 
         lab.pack(side='left')
         ent.pack(side='left')
@@ -145,10 +147,11 @@ class SecondFrame(ttk.Frame):
 
         self.width = [550,45]
 
-        fields1 = [['', [['Coeficiente Convectivo Exterior (h)',0], ['Coeficiente Convectivo Interior (h)',0], ['Iniciar Análisis',self.start_analysis]]]]
+        fields1 = [['', [['Coeficiente Convectivo Exterior (h)',0], ['Coeficiente Convectivo Interior (h)',0], ['Iniciar Análisis',self.start_analysis]]],
+                  ['', [['Grosor Ventana 1 (m)',0], ['Grosor Ventana 2 (m)',0]]]]
 
-        fields2 = [['Parades Paralelas', [['Resistencia a la Conducción (P)',1], ['Resistencia a la Convección Externa (P)',1], ['Resistencia a la Convección Interna (P)',1] ,['Resistencia a la Radiación (P)',1]]],
-                  ['Paredes Transversales',[['Resistencia a la Conducción (T)',1] ,['Resistencia a la Convección Externa (T)',1], ['Resistencia a la Convección Interna (T)',1] ,['Resistencia a la Radiación (T)',1]]]]
+        fields2 = [['Resistencias por Pared', [['Resistencia Pared 1',1], ['Resistencia Pared 2',1], ['Resistencia Pared 3',1] ,['Resistencia Techo',1]]],
+                  ['Radiaciones por Pared', [['Radiación Pared 1',1], ['Radiación Pared 2',1], ['Radiación Pared 3',1] ,['Radiación Techo',1]]]]
 
         fields3 = [['Calefacción del Agua', [['Flujo Másico Agua Caliente',1] ,['Energía Necesaria para Calentar el Agua en el Día',1] ,['Energía Suministrada por Colector Solar',1] ,['Energía a Suministrar por Combustible por Familia',1], ['Energía a Suministrar por Combustible en Complejo',1]]],
                   ['Calectores Solares', [['Cantidad Colectores por Familia',1] ,['Cantidad Colectores por Complejo Habitacional',1]]]]
@@ -166,7 +169,11 @@ class SecondFrame(ttk.Frame):
         titleLabel.pack(side='left')
 
         self.labelframe1 = ttk.LabelFrame(self, width=700, height=150)
-        self.labelframe1.pack(side='left', anchor='w', padx=5, pady=3, fill='y')
+        self.labelframe1.pack(fill="both", expand="yes")
+
+        self.big_var = StringVar()
+        self.biglabel = ttk.Label(self.labelframe1, textvariable=self.big_var)
+        self.biglabel.place(x=10)
 
         #Botón de salida
         self.exitProgramButton = Button(self,
@@ -176,7 +183,124 @@ class SecondFrame(ttk.Frame):
         self.exitProgramButton.pack(side='bottom', pady='5', anchor='e')
 
     def start_analysis(self):
-        pass
+        # Temperatura ambiente
+        room_temp = self.root.first_frame.entries['Temperatura Interior'].get()
+        # Temperatura interior
+        indoor_temp = self.root.first_frame.entries['Temperatura Ambiente'].get()
+        
+        # Coef. conv. exterior
+        exterior_h = self.entries['Coeficiente Convectivo Exterior (h)'].get()
+        # Coef. conv. interior
+        interior_h = self.entries['Coeficiente Convectivo Interior (h)'].get()
+
+        # Grosor ventana 1
+        window1_thickness = self.entries['Grosor Ventana 1 (m)'].get()
+        # Grosor ventana 2
+        window2_thickness = self.entries['Grosor Ventana 2 (m)'].get()
+
+        # Aislante seleccionado
+        insulator = self.root.first_frame.entries['Detalles del Material'].get()
+
+        if not (room_temp and indoor_temp and exterior_h and interior_h and window1_thickness and window2_thickness and insulator):
+            return
+
+        room_temp = float(room_temp)
+        indoor_temp = float(indoor_temp)
+        
+        exterior_h = float(exterior_h)
+        interior_h = float(interior_h)
+
+        # Grosor y k de los distintos aislantes
+        insulators_data = {'Poliestireno Extruido': [0.025, 0.12], 
+                     'Poliestireno Expandido': [0.04, 0.11], 
+                     'Poliuretano': [0.022, 0.09], 
+                     'Corcho': [0.045, 0.015], 
+                     'Lana de Roca': [0.037, 0.08], 
+                     'Lino': [0.04, 0.299], 
+                     'Lana de Vidrio': [0.035, 0.1], 
+                     'Celulosa': [0.038, 0.16], 
+                     'Lana de Oveja': [0.033, 0.08]
+        }
+
+        # Grosor distintas estructuras/materiales
+        brick_thickness = 0.12
+        wood_thickness = 0.05
+        zinc_thickness = 0.00044
+        window1_thickness = float(window1_thickness)
+        window2_thickness = float(window2_thickness)
+        insulator_thickness = insulators_data[insulator][1]
+        
+        # Área distintas estructuras/materiales
+        door_area = 1.68
+        window1_area = 1
+        window2_area = 0.64
+        wall1_area = 482
+        wall2_area = 450
+
+        # Coeficientes k para distintos materiales
+        brick_k = 0.8
+        wood_k = 0.13
+        zinc_k = 110
+        window1_k = 1
+        window2_k = 1
+        insulator_k = insulators_data[insulator][0]
+
+        # Parámetros radiación
+        gs = 172.4537
+        brick_alpha = 0.7
+        brick_e = 0.7
+        zinc_alpha = 0.55
+        zinc_e = 0.55
+        sigma = 5.678 * (10**(-6))
+        ts = (indoor_temp + room_temp)/2
+
+        # Resistencia pared 1
+        R1 = 2 * (brick_thickness/(brick_k * wall1_area)) + (insulator_thickness/(insulator_k * wall1_area))
+        PR1 = 1/((1/R1) + ((window1_k * window1_area * 40)/window1_thickness) + ((window2_k * window2_area * 40)/window2_thickness) + ((wood_k * door_area * 20)/wood_thickness))
+        RT1 = 1/(interior_h * (53 * 10)) + PR1 + 1/(exterior_h * (53 * 10))
+        QRES1 = round((indoor_temp - room_temp)/RT1, 2)
+        # Radiación pared 1
+        QRAD1 = round(brick_alpha * gs * wall1_area - brick_e * sigma * (ts**4) * wall1_area, 2)
+        # Q total pared 1
+        QT1 = QRES1 + QRAD1
+
+        # Resistencia pared 2
+        RT2 = 1/(interior_h * (6.25 * 10)) + brick_thickness/(brick_k * (6.25 * 10)) + 1/(exterior_h * (6.25 * 10))
+        QRES2 = round(2 * ((indoor_temp - room_temp)/RT2), 2)
+        # Radiación pared 2
+        QRAD2 = round(2 * (brick_alpha * gs * (6.25 * 10) - brick_e * sigma * (ts**4) * (6.25 * 10)), 2)
+        # Q total pared 2
+        QT2 = QRES2 + QRAD2
+
+        # Resistencia pared 3
+        PR3 = 1/((window1_k * window1_area * 80)/window1_thickness + 1/(brick_thickness/(brick_k * wall2_area) + insulator_thickness/(insulator_k * wall2_area) + brick_thickness/(brick_k * wall2_area)))
+        RT3 = 1/(interior_h * (53 * 10)) + PR3 + 1/(exterior_h * (53 * 10))
+        QRES3 = round((indoor_temp - room_temp)/RT3, 2)
+        # Radiación pared 3
+        QRAD3 = round(brick_alpha * gs * wall2_area - brick_e * sigma * (ts**4) * wall2_area, 2)
+        # Q total pared 3
+        QT3 = QRES3 + QRAD3
+
+        # Resistencia techo
+        RT4 = 1/(interior_h * (53 * 9.47)) + zinc_thickness/(zinc_k * (53 * 9.47)) + 1/(exterior_h * (53 * 9.47))
+        QRES4 = round((indoor_temp - room_temp)/RT4, 2)
+        # Radiación techo
+        QRAD4 = round(zinc_alpha * gs * (53 * 9.47) - zinc_e * sigma * (ts**4) * (53 * 9.47), 2)
+        # Q total techo
+        QT4 = QRES4 + QRAD4
+
+        self.entries["Resistencia Pared 1"].set(QRES1)
+        self.entries["Resistencia Pared 2"].set(QRES2)
+        self.entries["Resistencia Pared 3"].set(QRES3)
+        self.entries["Resistencia Techo"].set(QRES4)
+
+        self.entries["Radiación Pared 1"].set(QRAD1)
+        self.entries["Radiación Pared 2"].set(QRAD2)
+        self.entries["Radiación Pared 3"].set(QRAD3)
+        self.entries["Radiación Techo"].set(QRAD4)
+
+        self.big_var.set(f"Resistencia + Radiación Pared 1 = {QT1}\nResistencia + Radiación Pared 2 = {QT2}\nResistencia + Radiación Pared 3 = {QT3}\nResistencia + Radiación Techo = {QT4}\nQ TOTAL = {QT1+QT2+QT3+QT4}")
+
 
 class ThirdFrame(ttk.Frame):
     
